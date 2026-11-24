@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Solmar Bay — Sunset Run v6</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1a0f2e; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+  #scene { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+  #hud { position: fixed; inset: 0; pointer-events: none; color: #fff; font-size: 14px; }
+  .panel { background: rgba(8, 10, 26, 0.72); border: 1px solid rgba(255, 190, 90, 0.35); border-radius: 10px; backdrop-filter: blur(2px); }
+  .label { font-size: 10px; letter-spacing: 2px; color: #ffb85c; font-weight: 700; }
+  /* --- mission panel, top left --- */
+  #mission { position: absolute; left: 12px; top: 12px; width: 302px; padding: 10px 12px 11px; }
+  #mission .job { font-size: 11px; letter-spacing: 2px; color: #ffd27a; font-weight: 800; }
+  #mission .name { font-size: 19px; font-weight: 800; margin: 2px 0 6px; }
+  #stagebar { height: 8px; background: rgba(255,255,255,.18); border-radius: 4px; overflow: hidden; }
+  #stagefill { height: 100%; width: 40%; background: linear-gradient(90deg, #ff9a3d, #ffd27a); }
+  #mission .next { margin-top: 6px; font-size: 13px; color: #eaf2ff; }
+  #mission .timer { margin-top: 3px; font-size: 12px; color: #9fd8ff; font-variant-numeric: tabular-nums; }
+  /* --- cash / wanted / rank, top right --- */
+  #status { position: absolute; right: 12px; top: 12px; width: 262px; padding: 9px 12px 10px; text-align: right; }
+  #cash { font-size: 24px; font-weight: 800; color: #7dff9b; }
+  #stars { font-size: 20px; letter-spacing: 3px; color: #ffd23d; margin-top: 1px; }
+  #stars .off { color: rgba(255,255,255,.25); }
+  #rankline { margin-top: 3px; font-size: 13px; color: #ffd27a; font-weight: 700; }
+  #rpbar { height: 6px; background: rgba(255,255,255,.18); border-radius: 3px; overflow: hidden; margin-top: 4px; }
+  #rpfill { height: 100%; width: 62%; background: linear-gradient(90deg, #c86bff, #ff7ad9); }
+  /* --- dispatch panel, right side --- */
+  #dispatch { position: absolute; right: 12px; top: 112px; width: 262px; padding: 9px 12px 10px; }
+  #dispatch .head { display: flex; justify-content: space-between; align-items: baseline; }
+  #dispatch .head b { font-size: 13px; letter-spacing: 1px; }
+  #dispatch .head span { font-size: 11px; color: #ff8f8f; font-weight: 700; }
+  .unit { display: flex; justify-content: space-between; align-items: center; font-size: 12px; padding: 4px 0 2px; border-top: 1px solid rgba(255,255,255,.08); }
+  .unit .uname { font-weight: 800; color: #fff; }
+  .unit .urole { color: #9fd8ff; margin-left: 5px; }
+  .unit .dist { color: #ffd27a; font-variant-numeric: tabular-nums; }
+  .tag { font-size: 9px; font-weight: 800; letter-spacing: 1px; padding: 2px 5px; border-radius: 4px; color: #0a0a14; }
+  .tag.red { background: #ff5d5d; } .tag.orange { background: #ff9a3d; } .tag.yellow { background: #ffd23d; }
+  .tag.blue { background: #6ec1ff; } .tag.purple { background: #c86bff; }
+  /* --- minimap, bottom left --- */
+  #mapwrap { position: absolute; left: 12px; bottom: 12px; width: 176px; height: 176px; border-radius: 50%; overflow: hidden; border: 3px solid rgba(255, 190, 90, .55); background: #0b1020; }
+  #minimap { width: 176px; height: 176px; display: block; }
+  #district { position: absolute; left: 196px; bottom: 12px; width: 178px; padding: 8px 10px 9px; }
+  #district .dname { font-size: 16px; font-weight: 800; }
+  #district .dstand { font-size: 11px; color: #9fd8ff; margin-top: 2px; }
+  #standbar { height: 6px; background: rgba(255,255,255,.18); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+  #standfill { height: 100%; width: 58%; background: linear-gradient(90deg, #4fd2ff, #7dff9b); }
+  /* --- radio + dialog, bottom centre --- */
+  #radio { position: absolute; left: 380px; bottom: 108px; width: 520px; padding: 5px 12px; font-size: 12px; text-align: center; color: #ffe9b0; }
+  #radio b { color: #ff9a3d; }
+  #dialog { position: absolute; left: 380px; bottom: 12px; width: 520px; padding: 10px 12px 11px; display: flex; gap: 11px; align-items: center; }
+  #portrait { width: 58px; height: 58px; flex: 0 0 58px; border-radius: 50%; background: linear-gradient(135deg, #ff7ad9, #ff9a3d); display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 800; color: #1a0f2e; }
+  #dialog .who { font-size: 13px; font-weight: 800; }
+  #dialog .who span { color: #9fd8ff; font-weight: 600; }
+  #dialog .line { font-size: 14px; line-height: 1.35; margin-top: 2px; color: #f2f6ff; }
+  /* --- crew abilities + weapons + speedo, bottom right --- */
+  #crew { position: absolute; right: 12px; bottom: 176px; width: 362px; display: flex; gap: 6px; }
+  .ability { flex: 1; padding: 6px 7px 7px; text-align: center; }
+  .ability .key { display: inline-block; font-size: 10px; font-weight: 800; background: #ffd23d; color: #1a0f2e; border-radius: 4px; padding: 1px 6px; }
+  .ability .aname { font-size: 11px; font-weight: 800; margin-top: 4px; }
+  .ability .astat { font-size: 10px; color: #7dff9b; margin-top: 1px; font-weight: 700; }
+  #weapons { position: absolute; right: 12px; bottom: 122px; width: 362px; display: flex; gap: 4px; }
+  .wslot { flex: 1; padding: 5px 2px 6px; text-align: center; border-radius: 8px; background: rgba(8,10,26,.72); border: 1px solid rgba(255,255,255,.22); }
+  .wslot.active { border-color: #ffd23d; background: rgba(60,44,8,.85); }
+  .wslot .wnum { font-size: 9px; color: #9fd8ff; font-weight: 800; }
+  .wslot .wname { font-size: 10px; font-weight: 800; margin-top: 1px; }
+  .wslot .wammo { font-size: 10px; color: #ffd27a; }
+  .wslot.locked { opacity: .55; }
+  .wslot.locked .wname { color: #ff8f8f; }
+  #speedo { position: absolute; right: 12px; bottom: 12px; width: 232px; padding: 9px 12px 10px; text-align: right; }
+  #carname { font-size: 13px; font-weight: 800; color: #ffd27a; }
+  #speed { font-size: 44px; font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+  #speed small { font-size: 14px; color: #9fd8ff; font-weight: 700; }
+  #cond { font-size: 12px; color: #7dff9b; margin-top: 2px; }
+  #hint { position: absolute; left: 50%; transform: translateX(-50%); top: 12px; padding: 5px 12px; font-size: 12px; color: #eaf2ff; }
+  #toast { position: absolute; left: 50%; transform: translateX(-50%); top: 64px; padding: 8px 16px; font-size: 15px; font-weight: 800; color: #ffd23d; display: none; }
+  /* --- title screen --- */
+  #title { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; pointer-events: none; }
+  #titlecard { pointer-events: auto; width: 620px; padding: 26px 30px 22px; text-align: center; background: rgba(10, 8, 28, 0.78); border: 1px solid rgba(255, 190, 90, 0.5); border-radius: 16px; }
+  #titlecard h1 { margin: 0; font-size: 46px; line-height: 1.02; font-weight: 900; letter-spacing: 1px; background: linear-gradient(180deg, #fff3c4, #ffb03d 55%, #ff5d8f); -webkit-background-clip: text; background-clip: text; color: transparent; }
+  #titlecard .sub { margin-top: 4px; font-size: 14px; letter-spacing: 4px; color: #9fd8ff; font-weight: 700; }
+  #titlecard .tagline { margin-top: 8px; font-size: 13px; color: #eaf2ff; }
+  #crewrow { display: flex; gap: 8px; margin-top: 14px; }
+  .crewcard { flex: 1; padding: 8px 6px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.14); }
+  .crewcard .face { width: 40px; height: 40px; margin: 0 auto 4px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 18px; font-weight: 800; color: #1a0f2e; }
+  .crewcard .cname { font-size: 13px; font-weight: 800; }
+  .crewcard .crole { font-size: 11px; color: #9fd8ff; }
+  .crewcard .cabil { font-size: 11px; color: #ffd27a; margin-top: 2px; }
+  #slots { display: flex; gap: 8px; margin-top: 14px; }
+  .slot { flex: 1; padding: 4px 8px; border-radius: 10px; background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.16); text-align: left; cursor: pointer; }
+  .slot.sel { border-color: #ffd23d; background: rgba(80, 56, 8, 0.7); }
+  .slot .sname { font-size: 12px; font-weight: 800; letter-spacing: 1px; }
+  .slot .sinfo { font-size: 11px; color: #bcd6ff; margin-top: 3px; line-height: 1.4; }
+  #titlecard .controls { margin-top: 14px; font-size: 12px; color: #bcd6ff; line-height: 1.7; }
+  #titlecard .enter { margin-top: 12px; font-size: 15px; font-weight: 800; color: #ffd23d; animation: blink 1.4s infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+  /* --- pause / map screen --- */
+  #pause { position: fixed; inset: 0; display: none; background: rgba(6, 8, 22, 0.92); align-items: center; justify-content: center; }
+  #pausecard { width: 1020px; max-height: 700px; padding: 12px 20px; display: flex; gap: 18px; overflow: hidden; }
+  #pausecard h2 { margin: 0 0 2px; font-size: 26px; font-weight: 900; }
+  #pausecard .psub { font-size: 12px; color: #9fd8ff; margin-bottom: 10px; }
+  #bigmap { width: 410px; height: 410px; border-radius: 12px; border: 1px solid rgba(255,190,90,.4); background: #0b1020; flex: 0 0 410px; }
+  #pauseinfo { flex: 1; overflow-y: auto; font-size: 12px; }
+  #pauseinfo h3 { margin: 7px 0 3px; font-size: 12px; letter-spacing: 2px; color: #ffb85c; }
+  #pauseinfo h3:first-child { margin-top: 0; }
+  .statgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 14px; }
+  .statgrid div { display: flex; justify-content: space-between; border-bottom: 1px solid rgba(255,255,255,.08); padding: 2px 0; }
+  .statgrid b { color: #ffd27a; }
+  .mrow { display: flex; justify-content: space-between; padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,.08); }
+  .mrow .done { color: #7dff9b; font-weight: 800; }
+  .mrow .todo { color: #9fd8ff; }
+  .mrow .active { color: #ffd23d; font-weight: 800; }
+  .standrow { display: flex; justify-content: space-between; padding: 2px 0; }
+  .standrow .bar { width: 180px; height: 8px; background: rgba(255,255,255,.15); border-radius: 4px; overflow: hidden; }
+  .standrow .bar i { display: block; height: 100%; background: linear-gradient(90deg, #4fd2ff, #7dff9b); }
+  #pause .resume { margin-top: 8px; font-size: 14px; font-weight: 800; color: #ffd23d; }
+  #banner { position: absolute; left: 50%; top: 34%; transform: translate(-50%, -50%); text-align: center; display: none; }
+  #banner .big { font-size: 52px; font-weight: 900; letter-spacing: 3px; color: #ffd23d; text-shadow: 0 3px 18px rgba(0,0,0,.7); }
+  #banner .small { font-size: 20px; font-weight: 800; color: #fff; text-shadow: 0 2px 10px rgba(0,0,0,.7); }
+  #srstatus { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+</style>
+</head>
+<body>
+<canvas id="scene"></canvas>
+<div id="hud">
+  <div id="mission" class="panel">
+    <div class="job" id="joblabel">JOB 3 / 9</div>
+    <div class="name" id="missionname">Beachfront Getaway</div>
+    <div id="stagebar"><div id="stagefill"></div></div>
+    <div class="next" id="nextobj">NEXT: Lose the SBPD tail — reach the hideout</div>
+    <div class="timer" id="missiontimer">⏱ 02:41 &nbsp;•&nbsp; STAGE 2 / 3</div>
+  </div>
+  <div id="status" class="panel">
+    <div id="cash">$18,700</div>
+    <div id="stars">★★★<span class="off">☆☆</span></div>
+    <div id="rankline">RANK: STREET BOSS • RP 12,480</div>
+    <div id="rpbar"><div id="rpfill"></div></div>
+  </div>
+  <div id="dispatch" class="panel">
+    <div class="head"><b>SBPD DISPATCH</b><span>● LIVE</span></div>
+    <div id="units"></div>
+  </div>
+  <div id="mapwrap"><canvas id="minimap" width="352" height="352"></canvas></div>
+  <div id="district" class="panel">
+    <div class="dname" id="dname">Palm Row</div>
+    <div class="dstand" id="dstand">STANDING: RESPECTED • +58</div>
+    <div id="standbar"><div id="standfill"></div></div>
+  </div>
+  <div id="radio" class="panel"><b>SOLMAR FM 98.6</b> &nbsp;♪&nbsp; <span id="track">Sunset Drive — The Palms</span> &nbsp;•&nbsp; <span id="radioclock">18:42</span></div>
+  <div id="dialog" class="panel">
+    <div id="portrait">L</div>
+    <div>
+      <div class="who" id="dlgwho">LUCIA — <span>Fixer</span></div>
+      <div class="line" id="dlgline">“The beach is crawling with SBPD. Cut through Palm Row, lose them at the pier — and don't scratch my Comet.”</div>
+    </div>
+  </div>
+  <div id="crew" class="panel" style="background:none;border:none;padding:0;display:flex;">
+    <div class="ability panel"><span class="key">Z</span><div class="aname">GHOST RIDE</div><div class="astat" id="abilz">READY</div></div>
+    <div class="ability panel"><span class="key">X</span><div class="aname">SLIPSTREAM</div><div class="astat" id="abilx">READY</div></div>
+    <div class="ability panel"><span class="key">C</span><div class="aname">DEADEYE</div><div class="astat" id="abilc">READY</div></div>
+  </div>
+  <div id="weapons"></div>
+  <div id="speedo" class="panel">
+    <div id="carname">COMET GT — ON FOOT</div>
+    <div id="speed">0<small> MPH</small></div>
+    <div id="cond">CONDITION 96% • GEAR D</div>
+  </div>
+  <div id="hint" class="panel">W A S D drive / walk &nbsp;•&nbsp; E enter car &nbsp;•&nbsp; CLICK shoot &nbsp;•&nbsp; 1-5 weapons &nbsp;•&nbsp; ESC map</div>
+  <div id="toast" class="panel"></div>
+  <div id="banner"><div class="big" id="bannerbig">MISSION PASSED</div><div class="small" id="bannersmall">RATING: GOLD</div></div>
+</div>
+<div id="title">
+  <div id="titlecard">
+    <h1>SOLMAR BAY</h1>
+    <div class="sub">SUNSET RUN v6</div>
+    <div class="tagline">Nine jobs. One sunset. The whole city is watching.</div>
+    <div id="crewrow">
+      <div class="crewcard"><div class="face" style="background:#ff9a3d">M</div><div class="cname">MARCO</div><div class="crole">Driver</div><div class="cabil">Z — Ghost Ride</div></div>
+      <div class="crewcard"><div class="face" style="background:#ff7ad9">L</div><div class="cname">LUCIA</div><div class="crole">Fixer</div><div class="cabil">X — Slipstream</div></div>
+      <div class="crewcard"><div class="face" style="background:#6ec1ff">D</div><div class="cname">DANTE</div><div class="crole">Gunman</div><div class="cabil">C — Deadeye</div></div>
+    </div>
+    <div id="slots"></div>
+    <div class="controls">WASD move / drive &nbsp;•&nbsp; E enter &amp; exit car &nbsp;•&nbsp; Mouse aim, Click shoot &nbsp;•&nbsp; 1–5 weapons &nbsp;•&nbsp; Z X C crew abilities &nbsp;•&nbsp; ESC pause &amp; map</div>
+    <div class="enter">PRESS ENTER TO PLAY</div>
+  </div>
+</div>
+<div id="pause">
+  <div id="pausecard" class="panel">
+    <div>
+      <h2>SOLMAR BAY — MAP</h2>
+      <div class="psub">PAUSED • ESC to resume • Click a save slot to save</div>
+      <canvas id="bigmap" width="1040" height="1040"></canvas>
+    </div>
+    <div id="pauseinfo">
+      <h3>CAREER</h3>
+      <div class="statgrid" id="career"></div>
+      <h3>MISSIONS — 9 JOBS</h3>
+      <div id="missionlist"></div>
+      <h3>DISTRICT STANDING</h3>
+      <div id="standlist"></div>
+      <h3>SAVE SLOTS</h3>
+      <div id="pauseslots"></div>
+      <div class="resume">ESC — RESUME &nbsp;•&nbsp; Progress saves to this browser</div>
+    </div>
+  </div>
+</div>
+<p id="srstatus" role="status" aria-live="polite"></p>
+<script type="importmap">
+{ "imports": { "three": "./vendor/three.module.min.js" } }
+</script>
+<script type="module" src="./src/main.js"></script>
+</body>
+</html>
